@@ -13,147 +13,100 @@ library(ggplot2)
 library(plotly)
 library(tidyverse)
 library(flexdashboard)
+library(p8105.datasets)
 
 # Make some noisily increasing data
-# data("instacart")
+data("instacart")
 set.seed(1)
-#Randomly sample 5000 observations
-# instacart <- instacart %>% sample_n(5000)
+#Randomly sample 1% from the original observations
+instacart_subset <- instacart %>% sample_frac(0.01)
 
 ```
 
-geom_histogram
+Main page
 =======================================================================
 
 Row
 -----------------------------------------------------------------------
 
-### Scatterplot
+### Distribution of order volume placed during each hour of day
 
 ```{r}
-# plot1 <- instacart %>% group_by(order_id) %>% count(order_hour_of_day) %>% ggplot(aes(order_hour_of_day)) + geom_histogram(binwidth = 0.4) + xlab('Hour of the day')
-# 
-# ggplotly(plot1)
-# 
-# nyc_airbnb %>%
-#   mutate(text_label = str_c("Price: $", price, '\nRating: ', rating)) %>% 
-#   plot_ly(x = ~longitude, y = ~latitude, type = "scatter", mode = "markers",
-#           alpha = 0.5, 
-#           color = ~price,
-#           text = ~text_label)
-
-```
-
-
-### Boxplot
-
-```{r}
-# common_neighborhoods =
-#   nyc_airbnb %>% 
-#   count(neighbourhood, sort = TRUE) %>% 
-#   top_n(8) %>% 
-#   select(neighbourhood)
-# ## Selecting by n
-# 
-# inner_join(nyc_airbnb, common_neighborhoods,
-#              by = "neighbourhood") %>% 
-#   mutate(neighbourhood = fct_reorder(neighbourhood, price)) %>% 
-#   plot_ly(y = ~price, color = ~neighbourhood, type = "box",
-#           colors = "Set2")
+#set up plot element
+f <- list(
+  family = "Courier New, monospace",
+  size = 18,
+  color = "#7f7f7f"
+)
+x <- list(
+  title = "Hour of the day",
+  titlefont = f
+)
+#####
+instacart_subset %>% 
+  group_by(order_id) %>% 
+  count(order_hour_of_day) %>%
+  plot_ly(x = ~order_hour_of_day, type = "histogram", alpha = 0.5) %>% 
+  layout(xaxis = x)
 ```
 
 Row
 -----------------------------------------------------------------------
 
-### Barchart
+### Top 10 best-selling items by day of the week 
 
 ```{r}
-# nyc_airbnb %>% 
-#   count(neighbourhood) %>% 
-#   mutate(neighbourhood = fct_reorder(neighbourhood, n)) %>% 
-#   plot_ly(x = ~neighbourhood, y = ~n, color = ~neighbourhood, type = "bar")
+top10_product <- instacart_subset %>% count(product_name, sort = TRUE) %>% 
+  top_n(10) %>% select(product_name)
+
+inner_join(instacart_subset, top10_product) %>% 
+   mutate(order_dow = fct_recode(as.factor(order_dow), 
+   Sunday = '0', Monday = '1', Tuesday = '2', Wednesday = '3',
+   Thursday = '4', Friday = '5', Saturday = '6')) %>% 
+   group_by(order_dow) %>% 
+   count(product_name, sort = TRUE) %>% 
+   spread(key = order_dow, value = n) %>% 
+   plot_ly(x = ~Sunday, y = ~product_name, name = 'Sunday', type = 'scatter',
+           mode = 'markers', marker = list(color = 'red')) %>% 
+   add_trace(x = ~Monday, y = ~product_name, name = 'Monday', type = 'scatter',
+           mode = 'markers', marker = list(color = 'yellow')) %>% 
+   add_trace(x = ~Tuesday, y = ~product_name, name = 'Tuesday', type = 'scatter',
+           mode = 'markers', marker = list(color = 'pink')) %>% 
+   add_trace(x = ~Wednesday, y = ~product_name, name = 'Wednesday', type = 'scatter',
+           mode = 'markers', marker = list(color = 'green')) %>% 
+   add_trace(x = ~Thursday, y = ~product_name, name = 'Thursday', type = 'scatter',
+           mode = 'markers', marker = list(color = 'orange')) %>% 
+   add_trace(x = ~Friday, y = ~product_name, name = 'Friday', type = 'scatter',
+           mode = 'markers', marker = list(color = 'blue')) %>% 
+   add_trace(x = ~Saturday, y = ~product_name, name = 'Saturday', type = 'scatter',
+           mode = 'markers', marker = list(color = 'violet')) %>% 
+   layout(title = 'Tope 10 best-selling prodcut',
+          xaxis = list(title = ''))
 ```
 
-### 3D bubble plot
 
-```{r}
-data <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv")
-
-data_2007 <- data[which(data$year == 2007),]
-data_2007 <- data_2007[order(data_2007$continent, data_2007$country),]
-data_2007$size <- data_2007$pop
-colors <- c('#4AC6B7', '#1972A4', '#965F8A', '#FF7070', '#C61951')
-
-plot_ly(data_2007, x = ~gdpPercap, y = ~lifeExp, z = ~pop, color = ~continent, size = ~size, colors = colors,
-             marker = list(symbol = 'circle', sizemode = 'diameter'), sizes = c(5, 150),
-             text = ~paste('Country:', country, '<br>Life Expectancy:', lifeExp, '<br>GDP:', gdpPercap,
-                           '<br>Pop.:', pop)) %>%
-  layout(title = 'Life Expectancy v. Per Capita GDP, 2007',
-         scene = list(xaxis = list(title = 'GDP per capita (2000 dollars)',
-                      gridcolor = 'rgb(255, 255, 255)',
-                      range = c(2.003297660701705, 5.191505530708712),
-                      type = 'log',
-                      zerolinewidth = 1,
-                      ticklen = 5,
-                      gridwidth = 2),
-               yaxis = list(title = 'Life Expectancy (years)',
-                      gridcolor = 'rgb(255, 255, 255)',
-                      range = c(36.12621671352166, 91.72921793264332),
-                      zerolinewidth = 1,
-                      ticklen = 5,
-                      gridwith = 2),
-               zaxis = list(title = 'Population',
-                            gridcolor = 'rgb(255, 255, 255)',
-                            type = 'log',
-                            zerolinewidth = 1,
-                            ticklen = 5,
-                            gridwith = 2)),
-         paper_bgcolor = 'rgb(243, 243, 243)',
-         plot_bgcolor = 'rgb(243, 243, 243)')
-```
-
-Dot and Dumbbell plots
+Pie chart
 =======================================================================
 
 Row
 -----------------------------------------------------------------------
-
-<!-- ### Dot and Dumbbell plots -->
-
-```{r}
-s <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/school_earnings.csv")
-s <- s[order(s$Men), ]
-
-plot_ly(s, x = ~Women, y = ~School, name = "Women", type = 'scatter',
-             mode = "markers", marker = list(color = "pink")) %>%
-  add_trace(x = ~Men, y = ~School, name = "Men",type = 'scatter',
-            mode = "markers", marker = list(color = "blue")) %>%
-  layout(
-    title = "Gender earnings disparity",
-    xaxis = list(title = "Annual Salary (in thousands)"),
-    margin = list(l = 100)
-  )
-```
-
-Some plots
-=======================================================================
-
-Row
------------------------------------------------------------------------
-
-<!-- ### Dot and Dumbbell plots -->
+### Pie chart of department by sales volume
 
 ```{r}
-s <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/school_earnings.csv")
-s <- s[order(s$Men), ]
+instacart_subset %>% 
+  group_by(department) %>% 
+  count() %>% 
+  plot_ly(labels = ~department, values = ~n, type = 'pie',
+        textposition = 'inside',
+        textinfo = 'label+percent',
+        insidetextfont = list(color = '#FFFFFF'),
+        hoverinfo = 'text',
+        text = ~paste(department, '\n', n, ' items'),
+        marker = list(colors = colors,
+        line = list(color = '#FFFFFF', width = 1)),
+        showlegend = FALSE) %>%
+  layout(title = 'Pie chart of department by sales volume',
+        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
 
-plot_ly(s, x = ~Women, y = ~School, name = "Women", type = 'scatter',
-             mode = "markers", marker = list(color = "pink")) %>%
-  add_trace(x = ~Men, y = ~School, name = "Men",type = 'scatter',
-            mode = "markers", marker = list(color = "blue")) %>%
-  layout(
-    title = "Gender earnings disparity",
-    xaxis = list(title = "Annual Salary (in thousands)"),
-    margin = list(l = 100)
-  )
 ```
